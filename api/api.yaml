@@ -1,85 +1,101 @@
-# crud of app api
-/v1/apps:  
-  get:
-    tags:
-      - App
-    summary: Get all apps
-    operationId: getApps
-    responses:
-      '200':
-        description: A list of apps
+openapi: 3.0.0
+info:
+  title: App Service
+  version: 1.0.0
+paths:
+  /v1/apps:
+    get:
+      tags:
+        - App
+      summary: Get all apps
+      operationId: getApps
+      responses:
+        '200':
+          description: A list of apps
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/App'
+    post:
+      tags:
+        - App
+      summary: Create a new app
+      operationId: createApp
+      requestBody:
+        required: true
         content:
           application/json:
             schema:
-              type: array
-              items:
+              $ref: '#/components/schemas/App'
+      responses:
+        '201':
+          description: App created successfully
+          content:
+            application/json:
+              schema:
                 $ref: '#/components/schemas/App'
-  post:
-    tags:
-      - App
-    summary: Create a new app
-    operationId: createApp
-    requestBody:
-      required: true
-      content:
-        application/json:
+        '400':
+          description: Invalid input
+  /v1/apps/{appId}:
+    get:
+      tags:
+        - App
+      summary: Get a single app by ID
+      operationId: getAppById
+      parameters:
+        - name: appId
+          in: path
+          required: true
+          description: ID of the app to retrieve
           schema:
-            $ref: '#/components/schemas/App'
-    responses:
-      '201':
-        description: App created successfully
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/App'
-      '400':
-        description: Invalid input
-/v1/apps/{appId}:
-  get:
-    tags:
-      - App
-    summary: Get a single app by ID
-    operationId: getAppById
-    parameters:
-      - name: appId
-        in: path
-        required: true
-        description: ID of the app to retrieve
-        schema:
-          type: string
-    responses:
-      '200':
-        description: App found
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/App'
-      '404':
-        description: App not found
-  put:
-    tags:
-      - App
-    summary: Update an existing app
-    operationId: updateApp
-    parameters:
-      - name: appId
-        in: path
-        required: true
-        description: ID of the app to update
-        schema:
-          type: string
-    requestBody:
-      required: true
-      content:
-        application/json:
+            type: string
+      responses:
+        '200':
+          description: App found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/App'
+        '404':
+          description: App not found
+    put:
+      tags:
+        - App
+      summary: Update an existing app
+      operationId: updateApp
+      parameters:
+        - name: appId
+          in: path
+          required: true
+          description: ID of the app to update
           schema:
-            $ref: '#/components/schemas/App'
-    responses:
-      '200':
-        description: App updated successfully
+            type: string
+      requestBody:
+        required: true
         content:
           application/json:
             schema:
               $ref: '#/components/schemas/App'
-      '400':
-        description: Invalid input
+      responses:
+        '200':
+          description: App updated successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/App'
+        '400':
+          description: Invalid input
+components:
+  schemas:
+    App:
+      type: object
+      properties:
+        id:
+          type: string
+        name:
+          type: string
+      required:
+        - id
+        - name

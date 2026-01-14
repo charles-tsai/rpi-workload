@@ -2,47 +2,49 @@
 package api
 
 import (
-	"fmt"
-	"net/http"
-
-	"github.com/labstack/echo/v4"
+	"context"
 )
 
-// This is a simple example of how to make each of the api calls.
-// A more realistic application might use a database to store and retrieve pets.
-type Server struct {
-	echo *echo.Echo
-}
+// Server implements the StrictServerInterface generated from the OpenAPI spec.
+type Server struct{}
 
 // NewServer returns a new Server.
-func NewServer(e *echo.Echo) *Server {
-	return &Server{echo: e}
+func NewServer() *Server {
+	return &Server{}
 }
 
-// GetWorkload implements the GetWorkload interface.
-func (s *Server) GetWorkload(ctx echo.Context) error {
-	return ctx.String(http.StatusOK, "GetWorkload")
+// GetApps implements the GetApps interface.
+func (s *Server) GetApps(ctx context.Context, request GetAppsRequestObject) (GetAppsResponseObject, error) {
+	// For now, return a fixed list of apps
+	return GetApps200JSONResponse{
+		{Id: "1", Name: "App 1"},
+		{Id: "2", Name: "App 2"},
+	}, nil
 }
 
-// PostWorkload implements the PostWorkload interface.
-func (s *Server) PostWorkload(ctx echo.Context) error {
-	var workload Workload
-	if err := ctx.Bind(&workload); err != nil {
-		return ctx.String(http.StatusBadRequest, fmt.Sprintf("error binding workload: %v", err))
-	}
-	return ctx.String(http.StatusOK, fmt.Sprintf("PostWorkload: %v", workload))
+// CreateApp implements the CreateApp interface.
+func (s *Server) CreateApp(ctx context.Context, request CreateAppRequestObject) (CreateAppResponseObject, error) {
+	// Echo back the created app
+	return CreateApp201JSONResponse{
+		Id:   request.Body.Id,
+		Name: request.Body.Name,
+	}, nil
 }
 
-// PutWorkload implements the PutWorkload interface.
-func (s *Server) PutWorkload(ctx echo.Context) error {
-	var workload Workload
-	if err := ctx.Bind(&workload); err != nil {
-		return ctx.String(http.StatusBadRequest, fmt.Sprintf("error binding workload: %v", err))
-	}
-	return ctx.String(http.StatusOK, fmt.Sprintf("PutWorkload: %v", workload))
+// GetAppById implements the GetAppById interface.
+func (s *Server) GetAppById(ctx context.Context, request GetAppByIdRequestObject) (GetAppByIdResponseObject, error) {
+	// Return a dummy app
+	return GetAppById200JSONResponse{
+		Id:   request.AppId,
+		Name: "Dummy App",
+	}, nil
 }
 
-// DeleteWorkload implements the DeleteWorkload interface.
-func (s *Server) DeleteWorkload(ctx echo.Context) error {
-	return ctx.String(http.StatusOK, "DeleteWorkload")
+// UpdateApp implements the UpdateApp interface.
+func (s *Server) UpdateApp(ctx context.Context, request UpdateAppRequestObject) (UpdateAppResponseObject, error) {
+	// Echo back the updated app
+	return UpdateApp200JSONResponse{
+		Id:   request.AppId,
+		Name: request.Body.Name,
+	}, nil
 }
