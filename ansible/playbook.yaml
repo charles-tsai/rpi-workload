@@ -1,0 +1,114 @@
+---
+- name: Install RPi Workload
+  hosts: raspberry_pi
+  become: yes
+  vars:
+    project_dir: /opt/rpi-workload
+    go_version: "1.24.0"
+    database_url: "postgres://user:password@localhost:5432/workload_db"
+
+  tasks:
+    - name: Update apt cache
+      apt:
+        update_cache: yes
+        cache_valid_time: 3600
+
+    - name: Install system dependencies
+      apt:
+        name:
+          - git
+          - make
+          - golang-go
+          - docker.io
+          - docker-compose
+        state: present
+
+    - name: Ensure docker service is running
+      service:
+        name: docker
+        state: started
+        enabled: yes
+
+    - name: Add user to docker group
+      user:
+        name: "{{ ansible_user }}"
+        groups: docker
+        append: yes
+
+    - name: Create project directory
+      file:
+        path: "{{ project_dir }}"
+        state: directory
+        owner: "{{ ansible_user }}"
+        group: "{{ ansible_user }}"
+        mode: '0755'
+
+    # Note: This copies everything. In a production setup, consider using git module or synchronize with excludes.
+    - name: Copy project files
+      copy:
+        src: ../
+        dest: "{{ project_dir }}/"
+        owner: "{{ ansible_user }}"
+        group: "{{ ansible_user }}"
+        mode: preserve
+
+    - name: Generate API code
+      command: make generate
+      args:
+        chdir: "{{ project_dir }}"
+      environment:
+        PATH: "/usr/local/go/bin:/usr/bin:/bin"
+      register: generate_result
+      changed_when: generate_result.rc != 0
+
+    - name: Build binary
+      command: go build -o bin/server src/main.go
+      args:
+        chdir: "{{ project_dir }}"
+      environment:
+        PATH: "/usr/local/go/bin:/usr/bin:/bin"
+      register: build_result
+      changed_when: build_result.rc != 0
+
+    - name: Ensure bin directory permissions
+      file:
+        path: "{{ project_dir }}/bin"
+        state: directory
+        owner: "{{ ansible_user }}"
+        group: "{{ ansible_user }}"
+        recurse: yes
+
+    - name: Start Database
+      command: docker-compose up -d
+      args:
+        chdir: "{{ project_dir }}"
+      register: compose_result
+      changed_when: "'Creating' in compose_result.stderr or 'Recreating' in compose_result.stderr"
+
+    - name: Create systemd service
+      template:
+        src: rpi-workload.service.j2
+        dest: /etc/systemd/system/rpi-workload.service
+      vars:
+        service_user: "{{ ansible_user }}"
+        service_workdir: "{{ project_dir }}"
+        service_exec: "{{ project_dir }}/bin/server"
+      notify:
+        - Reload systemd
+        - Restart rpi-workload
+
+    - name: Enable and start service
+      service:
+        name: rpi-workload
+        state: started
+        enabled: yes
+
+  handlers:
+    - name: Reload systemd
+      systemd:
+        daemon_reload: yes
+
+    - name: Restart rpi-workload
+      service:
+        name: rpi-workload
+        state: restarted
