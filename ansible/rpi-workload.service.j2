@@ -1,0 +1,15 @@
+[Unit]
+Description=RPi Workload Service
+After=network.target docker.service
+Requires=docker.service
+
+[Service]
+Type=simple
+User={{ service_user }}
+WorkingDirectory={{ service_workdir }}
+ExecStart={{ service_exec }}
+Restart=always
+Environment=DATABASE_URL={{ database_url }}
+
+[Install]
+WantedBy=multi-user.target
