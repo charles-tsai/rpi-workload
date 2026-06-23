@@ -49,8 +49,8 @@ func (s *Server) GetApps(ctx context.Context, request GetAppsRequestObject) (Get
 	defer rows.Close()
 
 	var apps []App
+	var app App
 	for rows.Next() {
-		var app App
 		if err := rows.Scan(&app.Id, &app.Name); err != nil {
 			return nil, fmt.Errorf("failed to scan app: %w", err)
 		}
