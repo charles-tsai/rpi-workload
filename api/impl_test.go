@@ -197,4 +197,50 @@ func TestGetAppById(t *testing.T) {
 			t.Errorf("expected GetAppById404Response, got %T", resp)
 		}
 	})
+func TestUpdateApp(t *testing.T) {
+	var execCalled bool
+	mockDB := &MockDB{
+		ExecFunc: func(ctx context.Context, sql string, arguments ...any) (pgconn.CommandTag, error) {
+			execCalled = true
+			if sql != "UPDATE apps SET name = $1 WHERE id = $2" {
+				t.Errorf("expected sql 'UPDATE apps SET name = $1 WHERE id = $2', got '%s'", sql)
+			}
+			if len(arguments) != 2 {
+				t.Errorf("expected 2 arguments, got %d", len(arguments))
+			}
+			if arguments[0] != "new-name" {
+				t.Errorf("expected name 'new-name', got '%v'", arguments[0])
+			}
+			if arguments[1] != "test-id" {
+				t.Errorf("expected id 'test-id', got '%v'", arguments[1])
+			}
+			return pgconn.NewCommandTag("UPDATE 1"), nil
+		},
+	}
+
+	server := NewServer(mockDB)
+	req := UpdateAppRequestObject{
+		AppId: "test-id",
+		Body: &App{
+			Id:   "test-id",
+			Name: "new-name",
+		},
+	}
+
+	resp, err := server.UpdateApp(context.Background(), req)
+	if err != nil {
+		t.Fatalf("UpdateApp failed: %v", err)
+	}
+
+	if !execCalled {
+		t.Error("Exec was not called")
+	}
+
+	jsonResp, ok := resp.(UpdateApp200JSONResponse)
+	if !ok {
+		t.Errorf("expected UpdateApp200JSONResponse, got %T", resp)
+	}
+	if jsonResp.Id != "test-id" || jsonResp.Name != "new-name" {
+		t.Errorf("unexpected response body: %+v", jsonResp)
+	}
 }
