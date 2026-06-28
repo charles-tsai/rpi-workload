@@ -88,7 +88,15 @@ func (s *Server) GetAppById(ctx context.Context, request GetAppByIdRequestObject
 
 // UpdateApp implements the UpdateApp interface.
 func (s *Server) UpdateApp(ctx context.Context, request UpdateAppRequestObject) (UpdateAppResponseObject, error) {
-	// Echo back the updated app
+	if request.Body == nil {
+		return nil, fmt.Errorf("request body is nil")
+	}
+
+	_, err := s.db.Exec(ctx, "UPDATE apps SET name = $1 WHERE id = $2", request.Body.Name, request.AppId)
+	if err != nil {
+		return nil, fmt.Errorf("failed to update app: %w", err)
+	}
+
 	return UpdateApp200JSONResponse{
 		Id:   request.AppId,
 		Name: request.Body.Name,
