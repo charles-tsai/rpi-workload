@@ -144,6 +144,59 @@ func TestGetApps(t *testing.T) {
 	}
 }
 
+func TestGetAppById(t *testing.T) {
+	t.Run("Success", func(t *testing.T) {
+		mockDB := &MockDB{
+			QueryFunc: func(ctx context.Context, sql string, arguments ...any) (pgx.Rows, error) {
+				if sql != "SELECT id, name FROM apps WHERE id = $1" {
+					t.Errorf("expected sql 'SELECT id, name FROM apps WHERE id = $1', got '%s'", sql)
+				}
+				if arguments[0] != "test-id" {
+					t.Errorf("expected id 'test-id', got '%v'", arguments[0])
+				}
+				return &MockRows{
+					data: [][]interface{}{
+						{"test-id", "test-app"},
+					},
+				}, nil
+			},
+		}
+
+		server := NewServer(mockDB)
+		resp, err := server.GetAppById(context.Background(), GetAppByIdRequestObject{AppId: "test-id"})
+		if err != nil {
+			t.Fatalf("GetAppById failed: %v", err)
+		}
+
+		jsonResp, ok := resp.(GetAppById200JSONResponse)
+		if !ok {
+			t.Errorf("expected GetAppById200JSONResponse, got %T", resp)
+		}
+		if jsonResp.Id != "test-id" || jsonResp.Name != "test-app" {
+			t.Errorf("unexpected response body: %+v", jsonResp)
+		}
+	})
+
+	t.Run("NotFound", func(t *testing.T) {
+		mockDB := &MockDB{
+			QueryFunc: func(ctx context.Context, sql string, arguments ...any) (pgx.Rows, error) {
+				return &MockRows{
+					data: [][]interface{}{},
+				}, nil
+			},
+		}
+
+		server := NewServer(mockDB)
+		resp, err := server.GetAppById(context.Background(), GetAppByIdRequestObject{AppId: "missing-id"})
+		if err != nil {
+			t.Fatalf("GetAppById failed: %v", err)
+		}
+
+		_, ok := resp.(GetAppById404Response)
+		if !ok {
+			t.Errorf("expected GetAppById404Response, got %T", resp)
+		}
+	})
 func TestUpdateApp(t *testing.T) {
 	var execCalled bool
 	mockDB := &MockDB{

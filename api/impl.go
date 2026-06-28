@@ -79,11 +79,26 @@ func (s *Server) CreateApp(ctx context.Context, request CreateAppRequestObject) 
 
 // GetAppById implements the GetAppById interface.
 func (s *Server) GetAppById(ctx context.Context, request GetAppByIdRequestObject) (GetAppByIdResponseObject, error) {
-	// Return a dummy app
-	return GetAppById200JSONResponse{
-		Id:   request.AppId,
-		Name: "Dummy App",
-	}, nil
+	rows, err := s.db.Query(ctx, "SELECT id, name FROM apps WHERE id = $1", request.AppId)
+	if err != nil {
+		return nil, fmt.Errorf("failed to query app by id: %w", err)
+	}
+	defer rows.Close()
+
+	if !rows.Next() {
+		return GetAppById404Response{}, nil
+	}
+
+	var app App
+	if err := rows.Scan(&app.Id, &app.Name); err != nil {
+		return nil, fmt.Errorf("failed to scan app: %w", err)
+	}
+
+	if rows.Err() != nil {
+		return nil, fmt.Errorf("rows iteration error: %w", rows.Err())
+	}
+
+	return GetAppById200JSONResponse(app), nil
 }
 
 // UpdateApp implements the UpdateApp interface.
